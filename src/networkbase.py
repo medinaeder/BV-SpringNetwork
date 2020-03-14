@@ -44,6 +44,9 @@ class NetworkBase:
 
         # Intialize Solution
         self.y0 = np.zeros(self.number_of_nodes*6)
+        non = self.number_of_nodes
+        for i in range(non):
+            self.y0[2*non+i] = 1e-4*(-1)**(i//20+i)
 
         return 
 
@@ -95,7 +98,8 @@ class NetworkBase:
         sim = self.sim
         while sim.t < self.tf:
             sim.step()
-            print(sim.t/self.tf)
+            percent = sim.t/self.tf
+            print(percent)
 
 
     # TODO: Finish the following implementation

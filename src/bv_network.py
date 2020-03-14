@@ -30,7 +30,7 @@ def _forces(u, v, tt, edges, r0):
     # Loop through the edges
     for i in range(num_edges):
         e1 = edges[i,0]
-        e2 = edges[i,0]
+        e2 = edges[i,1]
         u1, v1, tt1 = u[e1], v[e1], tt[e1]
         u2, v2, tt2 = u[e2], v[e2], tt[e2]
 
@@ -68,21 +68,28 @@ def _forces(u, v, tt, edges, r0):
         fx[e1] += F1x
         fy[e1] += F1y
 
-        fx[e2] += -F1x
-        fy[e2] += -F1y
+        fx[e2] -= F1x
+        fy[e2] -= F1y
 
 
         # Torsional Springs
         # M2 = k_th*(tt2-tt1) = M1
 
-        M1 = k_th * (tt1-tt2)
-        ms[e1] +=M1
-        ms[e2] -=M1
+
+        Ms = k_th * (tt1-tt2)
+        ms[e1] += Ms
+        ms[e2] -= Ms
 
         # Moment due to force
-        ms[e1] = 0.5*(c1*rx-s1*ry)*F1y-0.5*(s1*rx+c1*ry)*F1x
-        ms[e2] = 0.5*(c2*rx-s2*ry)*F1y-0.5*(s2*rx+c2*ry)*F1x
+        # Check forces
+        M1 = 0.5*(c1*rx-s1*ry)*F1y-0.5*(s1*rx+c1*ry)*F1x
+        M2 = 0.5*(c2*rx-s2*ry)*F1y-0.5*(s2*rx+c2*ry)*F1x
 
+        ms[e1] +=M1
+        ms[e2] +=M2
+
+
+        
     return fx, fy, ms
 
 
@@ -112,8 +119,8 @@ class BV_Network(NetworkBase):
         return np.zeros(non), np.zeros(non), np.zeros(non)
 
     def boundary_conditions(self, t, ud, vd, ttd):
-        m = 8
-        n = 8
+        m = 20
+        n = 20
         delta_y = -0.05
         pre_time = 5*n
         load_time = 50*n
@@ -147,8 +154,8 @@ class BV_Network(NetworkBase):
 
 if __name__ == "__main__":
     import networkx as nx
-    m = 8
-    n = 8
+    m = 20
+    n = 20
     
     G = nx.grid_2d_graph(m,n)
     pre_time = 5*n
@@ -161,6 +168,21 @@ if __name__ == "__main__":
     e = time.time()
     print("Final_Time:", problem.sim.t)
     print("Simulation Time ", e-s)
+    non = problem.number_of_nodes
+    import matplotlib.pyplot as plt
+    y = problem.sim.y
+    plt.figure(1)
+    ax = plt.gca()
+    ax.imshow(y[0:non].reshape((m,-1)).T)
+    plt.figure(2)
+    ax = plt.gca()
+    ax.imshow(y[non:2*non].reshape((m,-1)).T)
+    plt.figure(3)
+    ax = plt.gca()
+    ax.imshow(y[2*non:3*non].reshape((m,-1)).T)
+
+    plt.show()
+    
 
     
     
