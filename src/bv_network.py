@@ -1,13 +1,10 @@
 import numpy as np
 from networkbase import NetworkBase
-import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon as pg
-from matplotlib.collections import PatchCollection
 
-from numba import jit, njit
+from numba import njit
 
 
-#@njit 
+@njit 
 def _forces(u, v, tt, edges, r0):
     """
     args:   u - displacement in x
@@ -21,6 +18,9 @@ def _forces(u, v, tt, edges, r0):
     fy = np.zeros_like(v)
     ms  = np.zeros_like(tt)
 
+    cos = np.cos
+    sin = np.sin
+
     # Spring Constants
     k_l = 1.0 
     k_s = 0.02
@@ -28,18 +28,60 @@ def _forces(u, v, tt, edges, r0):
 
     num_edges = edges.shape[0]
     # Loop through the edges
-    for i in range(num_egges):
+    for i in range(num_edges):
         e1 = edges[i,0]
         e2 = edges[i,0]
-        u1, v1, t1 = u[e1], v[e1], tt[e1]
-        u2, v2, t2 = u[e2], v[e2], tt[e2]
-            
-        # Compute elongation parallel
+        u1, v1, tt1 = u[e1], v[e1], tt[e1]
+        u2, v2, tt2 = u[e2], v[e2], tt[e2]
 
-        # Compute elongation perpendicular
-
+        rx = r0[i,0]
+        ry = r0[i,1]
 
 
+        # Compute the change in length of the spring
+        du = u2-u1
+        dv = v2-v1
+        
+        c1 = cos(tt1) 
+        s1 = sin(tt1)
+        c2 = cos(tt2) 
+        s2 = sin(tt2)
+
+        drx = -0.5*((c1+c2-2)*rx-(s1+s2)*ry)
+        dry = -0.5*((s1+s2)*rx +(c1+c2-2)*ry)
+        
+        dl1x = du+drx
+        dl1y = dv+dry
+
+        # dl2 = -dl1
+        # Compute Force computing- Parallel Perpendicular
+        rms = rx*rx+ry*ry # Magnitude of the vector
+        Fpar = dl1x*rx+dl1y*ry
+        Fper = -ry*dl1x+rx*dl1y
+
+        F1x = (k_l*rx*Fpar-ry*k_s*Fper)/rms
+        F1y = (k_l*ry*Fpar+ry*k_s*Fper)/rms
+
+        #Reminder 
+        # F2x = -F1x
+        # F2y = -F1y
+        fx[e1] += F1x
+        fy[e1] += F1y
+
+        fx[e2] += -F1x
+        fy[e2] += -F1y
+
+
+        # Torsional Springs
+        # M2 = k_th*(tt2-tt1) = M1
+
+        M1 = k_th * (tt1-tt2)
+        ms[e1] +=M1
+        ms[e2] -=M1
+
+        # Moment due to force
+        ms[e1] = 0.5*(c1*rx-s1*ry)*F1y-0.5*(s1*rx+c1*ry)*F1x
+        ms[e2] = 0.5*(c2*rx-s2*ry)*F1y-0.5*(s2*rx+c2*ry)*F1x
 
     return fx, fy, ms
 
@@ -56,27 +98,7 @@ class BV_Network(NetworkBase):
         self.mass = 1.0
         self.alpha  = 1.8
         self.J =  1./self.alpha**2 * self.mass * 0.5**2 
-        self.generate_directions()
 
-    def generate_directions(self):
-        G = self.G
-        connectivity = []
-        vectors =[]
-        for node in G.nodes():
-            x1,y1 = G.nodes[node]['loc']
-            neighbs = [n for n in G.neighbors(node)]
-            connectivity.append(neighbs)
-            vs = []
-            
-            # Loop over the edges and find the data for the neighbors
-            for i,n in enumerate(G.neighbors(node)):
-                x2,y2 = G.nodes[n]['loc']
-                vs.append(((x2-x1)*0.5,(y2-y1)*0.5))
-            vectors.append(vs)
-
-        self.connectivity = connectivity
-        self.vectors = vectors
-    
     def internal_forces(self,u,v,tt):
         return _forces(u,v,tt, self.edges, self.e_R)
 
@@ -88,13 +110,11 @@ class BV_Network(NetworkBase):
     def external_forces(self,t):
         non = self.number_of_nodes
         return np.zeros(non), np.zeros(non), np.zeros(non)
-        
 
     def boundary_conditions(self, t, ud, vd, ttd):
-        # Apply the velocity
-        # loop over nodes 
+        m = 8
+        n = 8
         delta_y = -0.05
-        
         pre_time = 5*n
         load_time = 50*n
 
@@ -131,17 +151,16 @@ if __name__ == "__main__":
     n = 8
     
     G = nx.grid_2d_graph(m,n)
-    G = nx.convert_node_labels_to_integers(G,label_attribute = "loc")
-    #pre_time = 5*n
-    #load_time = 50*n
-    #total_time = pre_time+load_time
-    #problem = BV_Network(G, 0, total_time)
-    #import time
-    #s = time.time()
-    #y = problem.run()
-    #e = time.time()
-    #np.savetxt("slow.txt", y)
-    #print("Total_Time: ", e-s)
+    pre_time = 5*n
+    load_time = 50*n
+    total_time = pre_time+load_time
+    problem = BV_Network(G, 0, total_time)
+    import time
+    s = time.time()
+    y = problem.run()
+    e = time.time()
+    print("Final_Time:", problem.sim.t)
+    print("Simulation Time ", e-s)
 
     
     
