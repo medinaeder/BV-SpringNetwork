@@ -46,7 +46,7 @@ class NetworkBase:
         self.y0 = np.zeros(self.number_of_nodes*6)
         non = self.number_of_nodes
         for i in range(non):
-            self.y0[2*non+i] = 1e-4*(-1)**(i//20+i)
+            self.y0[2*non+i] = 1e-6*(np.random.rand()-0.5)
 
         return 
 
@@ -94,12 +94,16 @@ class NetworkBase:
 
 
     def run(self):
-        self.sim = integrate.RK45(self.f, t0 = self.t0, y0 = self.y0, t_bound = self.tf, rtol=1e-3, atol=1e-6)
+        self.sim = integrate.RK45(self.f, t0 = self.t0, y0 = self.y0, t_bound = self.tf, rtol=1e-6, atol=1e-8)
         sim = self.sim
+        self.time = []
+        self.data = []
         while sim.t < self.tf:
             sim.step()
-            percent = sim.t/self.tf
-            print(percent)
+            self.time.append(sim.t)
+            self.data.append(sim.y)
+            #percent = sim.t/self.tf
+            #print(percent)
 
 
     # TODO: Finish the following implementation

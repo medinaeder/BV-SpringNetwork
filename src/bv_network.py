@@ -119,8 +119,8 @@ class BV_Network(NetworkBase):
         return np.zeros(non), np.zeros(non), np.zeros(non)
 
     def boundary_conditions(self, t, ud, vd, ttd):
-        m = 20
-        n = 20
+        m = 8
+        n = 8
         delta_y = -0.05
         pre_time = 5*n
         load_time = 50*n
@@ -141,10 +141,10 @@ class BV_Network(NetworkBase):
         # FIXME: Hard coded calc of system size
         for node in G.nodes():
             (x1,y1) = G.nodes[node]['loc']
-            if x1==0:
-                ud[node] = 0
-            if x1==m-1:
-                ud[node] = 0
+            #if x1==0:
+            #    ud[node] = 0
+            #if x1==m-1:
+            #    ud[node] = 0
             if y1==0:
                 vd[node] = 0
             if y1==n-1:
@@ -154,8 +154,8 @@ class BV_Network(NetworkBase):
 
 if __name__ == "__main__":
     import networkx as nx
-    m = 20
-    n = 20
+    m = 8
+    n = 8
     
     G = nx.grid_2d_graph(m,n)
     pre_time = 5*n
@@ -164,25 +164,14 @@ if __name__ == "__main__":
     problem = BV_Network(G, 0, total_time)
     import time
     s = time.time()
-    y = problem.run()
+    problem.run()
     e = time.time()
+    np.savetxt("time.txt", problem.time) 
+    np.savetxt("data.txt", problem.data)
     print("Final_Time:", problem.sim.t)
     print("Simulation Time ", e-s)
-    non = problem.number_of_nodes
-    import matplotlib.pyplot as plt
-    y = problem.sim.y
-    plt.figure(1)
-    ax = plt.gca()
-    ax.imshow(y[0:non].reshape((m,-1)).T)
-    plt.figure(2)
-    ax = plt.gca()
-    ax.imshow(y[non:2*non].reshape((m,-1)).T)
-    plt.figure(3)
-    ax = plt.gca()
-    ax.imshow(y[2*non:3*non].reshape((m,-1)).T)
-
-    plt.show()
     
+
 
     
     

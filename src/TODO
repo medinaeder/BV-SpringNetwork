@@ -1,0 +1,8 @@
+Need to compare the output of the generalized graph to the output of the bolei graph
+
+Label Boundary Nodes
+Compute the Jacobian
+
+Reshape the bolei output the right way. See what the data says this way
+Create the best plot
+Compute the jacobian of this system
