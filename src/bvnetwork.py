@@ -98,8 +98,10 @@ class BV_Network(NetworkBase):
     Class to represent the Bolei-Vincent Network
     """
     
-    def __init__(self, G, t0, tf):
-        NetworkBase.__init__(self, G, t0, tf)
+    def __init__(self, G):
+        NetworkBase.__init__(self, G)
+
+        # These have to be characteristics of the netowrk right
         self.damp_u = 0.01
         self.damp_tt = 0.01 
         self.mass = 1.0
@@ -118,7 +120,7 @@ class BV_Network(NetworkBase):
         non = self.number_of_nodes
         return np.zeros(non), np.zeros(non), np.zeros(non)
 
-    def boundary_conditions(self, t, ud, vd, ttd):
+    def dynamicBCs(self, t, ud, vd, ttd):
         m = 8
         n = 8
         delta_y = -0.05
@@ -161,14 +163,16 @@ if __name__ == "__main__":
     pre_time = 5*n
     load_time = 50*n
     total_time = pre_time+load_time
-    problem = BV_Network(G, 0, total_time)
+    problem = BV_Network(G)
+    from dynamicsolver import DynamicSolver
+    dyn = DynamicSolver(problem,problem.y0, 0, total_time)
     import time
     s = time.time()
-    problem.run()
+    dyn.run()
     e = time.time()
-    np.savetxt("time.txt", problem.time) 
-    np.savetxt("data.txt", problem.data)
-    print("Final_Time:", problem.sim.t)
+    np.savetxt("time.txt", dyn.time) 
+    np.savetxt("data.txt", dyn.data)
+    print("Final_Time:", dyn.sim.t)
     print("Simulation Time ", e-s)
     
 

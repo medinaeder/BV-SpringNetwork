@@ -1,7 +1,5 @@
 import networkx as nx 
-from scipy import integrate
 import numpy as np
-import matplotlib.pyplot as plt
 import abc
 
 class NetworkBase:
@@ -9,13 +7,8 @@ class NetworkBase:
     Class to represent Arbitrary Bolei-Vincent Network
     """
     __metaclass__ = abc.ABCMeta
-    def __init__(self, G, t0, tf):
+    def __init__(self, G):
         self.preprocess(G)
-        self.t0 = t0
-        self.tf = tf
-        # The integrator has not been generated
-        self.sim = None
-    
     
     def preprocess(self, G):
         """
@@ -51,32 +44,6 @@ class NetworkBase:
         return 
 
     @abc.abstractmethod
-    def f(self,t,y):
-        'Right hand side of dydt = f(t,y) '
-
-        non = self.number_of_nodes
-
-        u = y[:non]
-        v = y[non:2*non]
-        tt = y[2*non:3*non]
-        ud = y[3*non:4*non]
-        vd = y[4*non:5*non]
-        ttd = y[5*non:6*non]
-
-        Fix, Fiy, Mi = self.internal_forces(u,v,tt)
-        Fex, Fey, Me = self.external_forces(t)
-        Fdx, Fdy, Md = self.damp_forces(ud,vd,ttd) 
-
-
-        Fx = (Fix+Fex)/self.mass - Fdx
-        Fy = (Fiy+Fey)/self.mass - Fdy
-        M  = (Mi+Me)/self.J    - Md
-
-        ud,vd,ttd = self.boundary_conditions(t,ud,vd,ttd)
-
-        return np.concatenate((ud, vd, ttd, Fx, Fy, M))
-
-    @abc.abstractmethod
     def internal_forces(self, u,v,tt):
         pass
 
@@ -89,22 +56,16 @@ class NetworkBase:
         pass
 
     @abc.abstractmethod
-    def boundary_conditions(self, t, ud, vd, ttd):
+    def dynamicBCs(self, t, ud, vd, ttd):
         pass
-
-
-    def run(self):
-        self.sim = integrate.RK45(self.f, t0 = self.t0, y0 = self.y0, t_bound = self.tf, rtol=1e-6, atol=1e-8)
-        sim = self.sim
-        self.time = []
-        self.data = []
-        while sim.t < self.tf:
-            sim.step()
-            self.time.append(sim.t)
-            self.data.append(sim.y)
-            #percent = sim.t/self.tf
-            #print(percent)
-
+    
+    @abc.abstractmethod
+    def staticBCs(self, t):
+        pass
+    
+    @abc.abstractmethod
+    def jacobian(self):
+        pass
 
     # TODO: Finish the following implementation
     def KE(self,ud,vd,ttd):
@@ -113,5 +74,6 @@ class NetworkBase:
     def PE(self,ud,vd,ttd):
         pass
 
-    def jacobian():
+    def jacobian(self):
         pass
+
