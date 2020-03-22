@@ -1,7 +1,13 @@
 Need to compare the output of the generalized graph to the output of the bolei graph
 
 Label Boundary Nodes
+Figure out how to apply the boundary conditions on the nonlinear problem
 Compute the Jacobian
+
+We don't have a input output module..
+
+# Perhaps we can use the sparse lu
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.splu.html
 
 Reshape the bolei output the right way. See what the data says this way
 Create the best plot
