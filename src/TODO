@@ -1,3 +1,12 @@
+##############
+Most Important
+Reshape the bolei output the right way. See what the data says this way
+Compare the data with the other implementations
+
+###########
+The preprocessing that is done for the grid2dgraph is going to be different than the hexagonal and the triangular lattice graph
+
+Finish the proper implementation of the static case
 Need to compare the output of the generalized graph to the output of the bolei graph
 
 Label Boundary Nodes
@@ -9,6 +18,8 @@ We don't have a input output module..
 # Perhaps we can use the sparse lu
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.splu.html
 
-Reshape the bolei output the right way. See what the data says this way
 Create the best plot
 Compute the jacobian of this system
+
+# Add a plotting routine
+

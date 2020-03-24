@@ -2,12 +2,14 @@ import networkx as nx
 import numpy as np
 import abc
 
-class NetworkBase:
+class NetworkBase(abc.ABC):
     """
-    Class to represent Arbitrary Bolei-Vincent Network
+    Class to represent basic network
     """
-    __metaclass__ = abc.ABCMeta
     def __init__(self, G):
+        """
+        Takes in a graph
+        """
         self.preprocess(G)
     
     def preprocess(self, G):
@@ -36,10 +38,14 @@ class NetworkBase:
         self.G = G
 
         # Intialize Solution
+        # TODO: Fix to generalize the static and the dynamic
         self.y0 = np.zeros(self.number_of_nodes*6)
         non = self.number_of_nodes
         for i in range(non):
-            self.y0[2*non+i] = 1e-6*(np.random.rand()-0.5)
+            ipj = i%8+i//8
+            self.y0[i]=2e-5*(np.random.rand()-0.5)
+            self.y0[non+i]=2e-5*(np.random.rand()-0.5)
+            self.y0[2*non+i] = 1e-4*(-1)**(ipj)
 
         return 
 
@@ -63,7 +69,7 @@ class NetworkBase:
     def staticBCs(self, t):
         pass
     
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def jacobian(self):
         pass
 
@@ -74,6 +80,4 @@ class NetworkBase:
     def PE(self,ud,vd,ttd):
         pass
 
-    def jacobian(self):
-        pass
 

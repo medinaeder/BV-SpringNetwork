@@ -88,8 +88,6 @@ def _forces(u, v, tt, edges, r0):
         ms[e1] +=M1
         ms[e2] +=M2
 
-
-        
     return fx, fy, ms
 
 
@@ -126,6 +124,7 @@ class BV_Network(NetworkBase):
         delta_y = -0.05
         pre_time = 5*n
         load_time = 50*n
+        G = self.G
 
         if t > pre_time:
             Veloy = delta_y*n/load_time
@@ -135,24 +134,24 @@ class BV_Network(NetworkBase):
             Veloy = 0
             self.damp_u = 0.01*2
             self.damp_tt = 0.01*2
-        else: 
-            Veloy = 0;
         
-        G = self.G
         
         # FIXME: Hard coded calc of system size
         for node in G.nodes():
             (x1,y1) = G.nodes[node]['loc']
-            #if x1==0:
-            #    ud[node] = 0
-            #if x1==m-1:
-            #    ud[node] = 0
+            if x1==0:
+                ud[node] = 0
+            if x1==m-1:
+                ud[node] = 0
             if y1==0:
                 vd[node] = 0
             if y1==n-1:
                 vd[node] = Veloy
 
         return ud, vd, ttd
+
+    def staticBCs(self):
+        pass
 
 if __name__ == "__main__":
     import networkx as nx
@@ -164,14 +163,15 @@ if __name__ == "__main__":
     load_time = 50*n
     total_time = pre_time+load_time
     problem = BV_Network(G)
+
     from dynamicsolver import DynamicSolver
     dyn = DynamicSolver(problem,problem.y0, 0, total_time)
     import time
     s = time.time()
     dyn.run()
     e = time.time()
-    np.savetxt("time.txt", dyn.time) 
-    np.savetxt("data.txt", dyn.data)
+    np.savetxt("presentation/time.txt", dyn.time) 
+    np.savetxt("presentation/data.txt", dyn.data)
     print("Final_Time:", dyn.sim.t)
     print("Simulation Time ", e-s)
     

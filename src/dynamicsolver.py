@@ -42,7 +42,7 @@ class DynamicSolver:
         return np.concatenate((ud, vd, ttd, Fx, Fy, M))
 
     def run(self):
-        self.sim = integrate.RK45(self.f, t0 = self.t0, y0 = self.y0, t_bound = self.tf, rtol=1e-6, atol=1e-8)
+        self.sim = integrate.RK45(self.f, t0 = self.t0, y0 = self.y0, t_bound = self.tf, rtol=1e-3, atol=1e-6)
         sim = self.sim
         self.time = []
         self.data = []
@@ -50,5 +50,3 @@ class DynamicSolver:
             sim.step()
             self.time.append(sim.t)
             self.data.append(sim.y)
-            #percent = sim.t/self.tf
-            #print(percent)
