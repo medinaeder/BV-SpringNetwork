@@ -1,7 +1,8 @@
 import networkx as nx 
 from scipy import integrate
 import numpy as np
-import abc
+
+# Change the interface of this to ode_int
 
 class DynamicSolver:
     def __init__(self, problem, y0,t0,tf):
@@ -9,10 +10,7 @@ class DynamicSolver:
         self.y0 = y0
         self.t0 = t0
         self.tf = tf
-        # The integrator has not been generated
-        self.sim = None
 
-    @abc.abstractmethod
     def f(self,t,y):
         'Right hand side of dydt = f(t,y) '
         problem = self.problem
@@ -41,12 +39,5 @@ class DynamicSolver:
 
         return np.concatenate((ud, vd, ttd, Fx, Fy, M))
 
-    def run(self):
-        self.sim = integrate.RK45(self.f, t0 = self.t0, y0 = self.y0, t_bound = self.tf, rtol=1e-3, atol=1e-6)
-        sim = self.sim
-        self.time = []
-        self.data = []
-        while sim.t < self.tf:
-            sim.step()
-            self.time.append(sim.t)
-            self.data.append(sim.y)
+    def solve(self):
+        self.out = integrate.solve_ivp(self.f, t_span = (self.t0,self.tf),  y0 = self.y0, t_eval = np.linspace(self.t0, self.tf, 101))

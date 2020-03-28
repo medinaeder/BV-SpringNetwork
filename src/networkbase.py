@@ -37,16 +37,6 @@ class NetworkBase(abc.ABC):
         # Store the Graph
         self.G = G
 
-        # Intialize Solution
-        # TODO: Fix to generalize the static and the dynamic
-        self.y0 = np.zeros(self.number_of_nodes*6)
-        non = self.number_of_nodes
-        for i in range(non):
-            ipj = i%8+i//8
-            self.y0[i]=2e-5*(np.random.rand()-0.5)
-            self.y0[non+i]=2e-5*(np.random.rand()-0.5)
-            self.y0[2*non+i] = 1e-4*(-1)**(ipj)
-
         return 
 
     @abc.abstractmethod

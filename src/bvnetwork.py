@@ -1,6 +1,6 @@
 import numpy as np
+import scipy as sp
 from networkbase import NetworkBase
-
 from numba import njit
 
 
@@ -73,12 +73,12 @@ def _forces(u, v, tt, edges, r0):
 
 
         # Torsional Springs
-        # M2 = k_th*(tt2-tt1) = M1
+        # M2 = k_th*(tt2-tt1) = -M1
 
 
-        Ms = k_th * (tt1-tt2)
-        ms[e1] += Ms
-        ms[e2] -= Ms
+        M_th = k_th * (tt1-tt2)
+        ms[e1] += M_th
+        ms[e2] -= M_th
 
         # Moment due to force
         # Check forces
@@ -89,6 +89,235 @@ def _forces(u, v, tt, edges, r0):
         ms[e2] +=M2
 
     return fx, fy, ms
+
+@njit
+def _zerojac(J, edges):
+    num_edges = edges.shape[0]
+    # Loop through the edges
+    for i in range(num_edges):
+        e1 = edges[i,0]
+        e2 = edges[i,1]
+
+        J[e1,e1] = 0
+        J[e1,e1+non] = 0
+        J[e1,e1+2*non] = 0
+
+        J[e1,e2] = 0
+        J[e1,e2+non] = 0
+        J[e1,e2+2*non] = 0
+
+        J[e1+non,e1] = 0
+        J[e1+non,e1+non] = 0
+        J[e1+non,e1+2*non] = 0
+
+        J[e1+non,e2] = 0
+        J[e1+non,e2+non] = 0
+        J[e1+non,e2+2*non] = 0
+
+        J[e1+2*non,e1] = 0
+        J[e1+2*non,e1+non] = 0
+        J[e1+2*non,e1+2*non] = 0
+
+        J[e1+2*non,e2] = 0
+        J[e1+2*non,e2+non] = 0
+        J[e1+2*non,e2+2*non] = 0
+
+        #############################
+
+        J[e2,e1] = 0
+        J[e2,e1+non] = 0
+        J[e2,e1+2*non] = 0 
+
+        J[e2,e2] = 0
+        J[e2,e2+non] = 0
+        J[e2,e2+2*non] = 0
+
+        J[e2+non,e1] = 0
+        J[e2+non,e1+non] = 0
+        J[e2+non,e1+2*non] = 0
+
+        J[e2+non,e2] = 0
+        J[e2+non,e2+non] = 0
+        J[e2+non,e2+2*non] = 0
+
+        J[e2+2*non,e1] = 0
+        J[e2+2*non,e1+non] = 0
+        J[e2+2*non,e1+2*non] = 0
+
+        J[e2+2*non,e2] = 0
+        J[e2+2*non,e2+non] = 0
+        J[e2+2*non,e2+2*non] = 0
+
+@njit
+def _jacobian(u, v, tt, edges, r0, J):
+    """
+    args:   u - displacement in x
+            v - displacement in y
+            tt - theta rotation
+            edge definition - connectivity
+            r0 - vector for each connectivity
+            J - the Jacobian
+    """
+    
+
+    cos = np.cos
+    sin = np.sin
+
+    # Spring Constants
+    k_l = 1.0 
+    k_s = 0.02
+    k_th = 1e-4/4.
+
+    num_edges = edges.shape[0]
+    # Loop through the edges
+    for i in range(num_edges):
+        e1 = edges[i,0]
+        e2 = edges[i,1]
+        #u1, v1, tt1 = u[e1], v[e1], tt[e1]
+        #u2, v2, tt2 = u[e2], v[e2], tt[e2]
+
+        #rx = r0[i,0]
+        #ry = r0[i,1]
+
+        # Set them all to 1 
+#        dfx_1du1 = 1
+#        dfx_1dv1 = 1
+#        dfx_1dtt1 = 1
+#
+#        dfx_1du2 = 1
+#        dfx_1dv2 = 1
+#        dfx_1dtt2 = 1
+#        
+#        dfy_1du1 = 1
+#        dfy_1dv1 = 1
+#        dfy_1dtt1 = 1
+#
+#        dfy_1du2 = 1
+#        dfy_1dv2 = 1
+#        dfy_1dtt2 = 1
+#
+#        dM1du1 = 1
+#        dM1dv1 = 1
+#        dM1dtt1 = 1
+#
+#        dM1du2 = 1
+#        dM1dv2 = 1
+#        dM1dtt2 = 1
+#
+#
+#
+#        dfx_2du1 = 1
+#        dfx_2dv1 = 1
+#        dfx_2dtt1 = 1
+#
+#        dfx_2du2 = 1
+#        dfx_2dv2 = 1
+#        dfx_2dtt2 = 1
+#        
+#        dfy_2du1 = 1
+#        dfy_2dv1 = 1
+#        dfy_2dtt1 = 1
+#
+#        dfy_2du2 = 1
+#        dfy_2dv2 = 1
+#        dfy_2dtt2 = 1
+#
+#        dM2du1 = 1
+#        dM2dv1 = 1
+#        dM2dtt1 = 1
+#
+#        dM2du2 = 1
+#        dM2dv2 = 1
+#        dM2dtt2 = 1
+        dfx_1du1= (-k_l*rx**2 - k_s*ry**2)/(rx**2 + ry**2)
+        dfx_1dv1= (-k_l*rx*ry + k_s*rx*ry)/(rx**2 + ry**2)
+        dfx_1dtt1= (k_l*rx*(rx*(0.5*rx*s1 + 0.5*ry*c1) + ry*(-0.5*rx*c1 + 0.5*ry*s1)) - k_s*ry*(rx*(-0.5*rx*c1 + 0.5*ry*s1) - ry*(0.5*rx*s1 + 0.5*ry*c1)))/(rx**2 + ry**2)
+        dfx_1du2= (k_l*rx**2 + k_s*ry**2)/(rx**2 + ry**2)
+        dfx_1dv2= (k_l*rx*ry - k_s*rx*ry)/(rx**2 + ry**2)
+        dfx_1dtt2= (k_l*rx*(rx*(0.5*rx*s2 + 0.5*ry*c2) + ry*(-0.5*rx*c2 + 0.5*ry*s2)) - k_s*ry*(rx*(-0.5*rx*c2 + 0.5*ry*s2) - ry*(0.5*rx*s2 + 0.5*ry*c2)))/(rx**2 + ry**2)
+        dfy_1du1= (-k_l*rx*ry + k_s*ry**2)/(rx**2 + ry**2)
+        dfy_1dv1= (-k_l*ry**2 - k_s*rx*ry)/(rx**2 + ry**2)
+        dfy_1dtt1= (k_l*ry*(rx*(0.5*rx*s1 + 0.5*ry*c1) + ry*(-0.5*rx*c1 + 0.5*ry*s1)) + k_s*ry*(rx*(-0.5*rx*c1 + 0.5*ry*s1) - ry*(0.5*rx*s1 + 0.5*ry*c1)))/(rx**2 + ry**2)
+        dfy_1du2= (k_l*rx*ry - k_s*ry**2)/(rx**2 + ry**2)
+        dfy_1dv2= (k_l*ry**2 + k_s*rx*ry)/(rx**2 + ry**2)
+        dfy_1dtt2= (k_l*ry*(rx*(0.5*rx*s2 + 0.5*ry*c2) + ry*(-0.5*rx*c2 + 0.5*ry*s2)) + k_s*ry*(rx*(-0.5*rx*c2 + 0.5*ry*s2) - ry*(0.5*rx*s2 + 0.5*ry*c2)))/(rx**2 + ry**2)
+        dM1du1= -(-k_l*rx**2 - k_s*ry**2)*(0.5*rx*s1 + 0.5*ry*c1)/(rx**2 + ry**2) + (0.5*rx*c1 - 0.5*ry*s1)*(-k_l*rx*ry + k_s*ry**2)/(rx**2 + ry**2)
+        dM1dv1= (-k_l*ry**2 - k_s*rx*ry)*(0.5*rx*c1 - 0.5*ry*s1)/(rx**2 + ry**2) - (0.5*rx*s1 + 0.5*ry*c1)*(-k_l*rx*ry + k_s*rx*ry)/(rx**2 + ry**2)
+        dM1dtt1= k_th + (-0.5*rx*s1 - 0.5*ry*c1)*(k_l*ry*(rx*(-0.5*rx*(c1 + c2 - 2) + 0.5*ry*(s1 + s2) - u1 + u2) + ry*(-0.5*rx*(s1 + s2) - 0.5*ry*(c1 + c2 - 2) - v1 + v2)) + k_s*ry*(rx*(-0.5*rx*(s1 + s2) - 0.5*ry*(c1 + c2 - 2) - v1 + v2) - ry*(-0.5*rx*(c1 + c2 - 2) + 0.5*ry*(s1 + s2) - u1 + u2)))/(rx**2 + ry**2) - (0.5*rx*s1 + 0.5*ry*c1)*(k_l*rx*(rx*(0.5*rx*s1 + 0.5*ry*c1) + ry*(-0.5*rx*c1 + 0.5*ry*s1)) - k_s*ry*(rx*(-0.5*rx*c1 + 0.5*ry*s1) - ry*(0.5*rx*s1 + 0.5*ry*c1)))/(rx**2 + ry**2) - (0.5*rx*c1 - 0.5*ry*s1)*(k_l*rx*(rx*(-0.5*rx*(c1 + c2 - 2) + 0.5*ry*(s1 + s2) - u1 + u2) + ry*(-0.5*rx*(s1 + s2) - 0.5*ry*(c1 + c2 - 2) - v1 + v2)) - k_s*ry*(rx*(-0.5*rx*(s1 + s2) - 0.5*ry*(c1 + c2 - 2) - v1 + v2) - ry*(-0.5*rx*(c1 + c2 - 2) + 0.5*ry*(s1 + s2) - u1 + u2)))/(rx**2 + ry**2) + (0.5*rx*c1 - 0.5*ry*s1)*(k_l*ry*(rx*(0.5*rx*s1 + 0.5*ry*c1) + ry*(-0.5*rx*c1 + 0.5*ry*s1)) + k_s*ry*(rx*(-0.5*rx*c1 + 0.5*ry*s1) - ry*(0.5*rx*s1 + 0.5*ry*c1)))/(rx**2 + ry**2)
+        dM1du2= -(k_l*rx**2 + k_s*ry**2)*(0.5*rx*s1 + 0.5*ry*c1)/(rx**2 + ry**2) + (0.5*rx*c1 - 0.5*ry*s1)*(k_l*rx*ry - k_s*ry**2)/(rx**2 + ry**2)
+        dM1dv2= (k_l*ry**2 + k_s*rx*ry)*(0.5*rx*c1 - 0.5*ry*s1)/(rx**2 + ry**2) - (0.5*rx*s1 + 0.5*ry*c1)*(k_l*rx*ry - k_s*rx*ry)/(rx**2 + ry**2)
+        dM1dtt2= -k_th - (0.5*rx*s1 + 0.5*ry*c1)*(k_l*rx*(rx*(0.5*rx*s2 + 0.5*ry*c2) + ry*(-0.5*rx*c2 + 0.5*ry*s2)) - k_s*ry*(rx*(-0.5*rx*c2 + 0.5*ry*s2) - ry*(0.5*rx*s2 + 0.5*ry*c2)))/(rx**2 + ry**2) + (0.5*rx*c1 - 0.5*ry*s1)*(k_l*ry*(rx*(0.5*rx*s2 + 0.5*ry*c2) + ry*(-0.5*rx*c2 + 0.5*ry*s2)) + k_s*ry*(rx*(-0.5*rx*c2 + 0.5*ry*s2) - ry*(0.5*rx*s2 + 0.5*ry*c2)))/(rx**2 + ry**2)
+        ####################
+        dfx_2du1= -(-k_l*rx**2 - k_s*ry**2)/(rx**2 + ry**2)
+        dfx_2dv1= -(-k_l*rx*ry + k_s*rx*ry)/(rx**2 + ry**2)
+        dfx_2dtt1= -(k_l*rx*(rx*(0.5*rx*s1 + 0.5*ry*c1) + ry*(-0.5*rx*c1 + 0.5*ry*s1)) - k_s*ry*(rx*(-0.5*rx*c1 + 0.5*ry*s1) - ry*(0.5*rx*s1 + 0.5*ry*c1)))/(rx**2 + ry**2)
+        dfx_2du2= -(k_l*rx**2 + k_s*ry**2)/(rx**2 + ry**2)
+        dfx_2dv2= -(k_l*rx*ry - k_s*rx*ry)/(rx**2 + ry**2)
+        dfx_2dtt2= -(k_l*rx*(rx*(0.5*rx*s2 + 0.5*ry*c2) + ry*(-0.5*rx*c2 + 0.5*ry*s2)) - k_s*ry*(rx*(-0.5*rx*c2 + 0.5*ry*s2) - ry*(0.5*rx*s2 + 0.5*ry*c2)))/(rx**2 + ry**2)
+        dfy_2du1= -(-k_l*rx*ry + k_s*ry**2)/(rx**2 + ry**2)
+        dfy_2dv1= -(-k_l*ry**2 - k_s*rx*ry)/(rx**2 + ry**2)
+        dfy_2dtt1= -(k_l*ry*(rx*(0.5*rx*s1 + 0.5*ry*c1) + ry*(-0.5*rx*c1 + 0.5*ry*s1)) + k_s*ry*(rx*(-0.5*rx*c1 + 0.5*ry*s1) - ry*(0.5*rx*s1 + 0.5*ry*c1)))/(rx**2 + ry**2)
+        dfy_2du2= -(k_l*rx*ry - k_s*ry**2)/(rx**2 + ry**2)
+        dfy_2dv2= -(k_l*ry**2 + k_s*rx*ry)/(rx**2 + ry**2)
+        dfy_2dtt2= -(k_l*ry*(rx*(0.5*rx*s2 + 0.5*ry*c2) + ry*(-0.5*rx*c2 + 0.5*ry*s2)) + k_s*ry*(rx*(-0.5*rx*c2 + 0.5*ry*s2) - ry*(0.5*rx*s2 + 0.5*ry*c2)))/(rx**2 + ry**2)
+        dM2du1= -(-k_l*rx**2 - k_s*ry**2)*(0.5*rx*s2 + 0.5*ry*c2)/(rx**2 + ry**2) + (0.5*rx*c2 - 0.5*ry*s2)*(-k_l*rx*ry + k_s*ry**2)/(rx**2 + ry**2)
+        dM2dv1= (-k_l*ry**2 - k_s*rx*ry)*(0.5*rx*c2 - 0.5*ry*s2)/(rx**2 + ry**2) - (0.5*rx*s2 + 0.5*ry*c2)*(-k_l*rx*ry + k_s*rx*ry)/(rx**2 + ry**2)
+        dM2dtt1= -k_th - (0.5*rx*s2 + 0.5*ry*c2)*(k_l*rx*(rx*(0.5*rx*s1 + 0.5*ry*c1) + ry*(-0.5*rx*c1 + 0.5*ry*s1)) - k_s*ry*(rx*(-0.5*rx*c1 + 0.5*ry*s1) - ry*(0.5*rx*s1 + 0.5*ry*c1)))/(rx**2 + ry**2) + (0.5*rx*c2 - 0.5*ry*s2)*(k_l*ry*(rx*(0.5*rx*s1 + 0.5*ry*c1) + ry*(-0.5*rx*c1 + 0.5*ry*s1)) + k_s*ry*(rx*(-0.5*rx*c1 + 0.5*ry*s1) - ry*(0.5*rx*s1 + 0.5*ry*c1)))/(rx**2 + ry**2)
+        dM2du2= -(k_l*rx**2 + k_s*ry**2)*(0.5*rx*s2 + 0.5*ry*c2)/(rx**2 + ry**2) + (0.5*rx*c2 - 0.5*ry*s2)*(k_l*rx*ry - k_s*ry**2)/(rx**2 + ry**2)
+        dM2dv2= (k_l*ry**2 + k_s*rx*ry)*(0.5*rx*c2 - 0.5*ry*s2)/(rx**2 + ry**2) - (0.5*rx*s2 + 0.5*ry*c2)*(k_l*rx*ry - k_s*rx*ry)/(rx**2 + ry**2)
+        dM2dtt2= k_th + (-0.5*rx*s2 - 0.5*ry*c2)*(k_l*ry*(rx*(-0.5*rx*(c1 + c2 - 2) + 0.5*ry*(s1 + s2) - u1 + u2) + ry*(-0.5*rx*(s1 + s2) - 0.5*ry*(c1 + c2 - 2) - v1 + v2)) + k_s*ry*(rx*(-0.5*rx*(s1 + s2) - 0.5*ry*(c1 + c2 - 2) - v1 + v2) - ry*(-0.5*rx*(c1 + c2 - 2) + 0.5*ry*(s1 + s2) - u1 + u2)))/(rx**2 + ry**2) - (0.5*rx*s2 + 0.5*ry*c2)*(k_l*rx*(rx*(0.5*rx*s2 + 0.5*ry*c2) + ry*(-0.5*rx*c2 + 0.5*ry*s2)) - k_s*ry*(rx*(-0.5*rx*c2 + 0.5*ry*s2) - ry*(0.5*rx*s2 + 0.5*ry*c2)))/(rx**2 + ry**2) - (0.5*rx*c2 - 0.5*ry*s2)*(k_l*rx*(rx*(-0.5*rx*(c1 + c2 - 2) + 0.5*ry*(s1 + s2) - u1 + u2) + ry*(-0.5*rx*(s1 + s2) - 0.5*ry*(c1 + c2 - 2) - v1 + v2)) - k_s*ry*(rx*(-0.5*rx*(s1 + s2) - 0.5*ry*(c1 + c2 - 2) - v1 + v2) - ry*(-0.5*rx*(c1 + c2 - 2) + 0.5*ry*(s1 + s2) - u1 + u2)))/(rx**2 + ry**2) + (0.5*rx*c2 - 0.5*ry*s2)*(k_l*ry*(rx*(0.5*rx*s2 + 0.5*ry*c2) + ry*(-0.5*rx*c2 + 0.5*ry*s2)) + k_s*ry*(rx*(-0.5*rx*c2 + 0.5*ry*s2) - ry*(0.5*rx*s2 + 0.5*ry*c2)))/(rx**2 + ry**2)
+
+        J[e1,e1] += dfx_1du1
+        J[e1,e1+non] += dfx_1dv1
+        J[e1,e1+2*non] += dfx_1dtt1
+
+        J[e1,e2] += dfx_1du2
+        J[e1,e2+non] += dfx_1dv2
+        J[e1,e2+2*non] += dfx_1dtt2
+
+        J[e1+non,e1] += dfy_1du1
+        J[e1+non,e1+non] += dfy_1dv1
+        J[e1+non,e1+2*non] += dfy_1dtt1
+
+        J[e1+non,e2] += dfy_1du2
+        J[e1+non,e2+non] += dfy_1dv2
+        J[e1+non,e2+2*non] += dfy_1dtt2
+
+        J[e1+2*non,e1] += dM1du1
+        J[e1+2*non,e1+non] += dM1dv1
+        J[e1+2*non,e1+2*non] += dM1dtt1
+
+        J[e1+2*non,e2] += dM1du2
+        J[e1+2*non,e2+non] += dM1dv2
+        J[e1+2*non,e2+2*non] += dM1dtt2
+
+        #############################
+
+        J[e2,e1] += dfx_2du1
+        J[e2,e1+non] += dfx_2dv1
+        J[e2,e1+2*non] += dfx_2dtt1
+
+        J[e2,e2] += dfx_2du2
+        J[e2,e2+non] += dfx_2dv2
+        J[e2,e2+2*non] += dfx_2dtt2
+
+        J[e2+non,e1] += dfy_2du1
+        J[e2+non,e1+non] += dfy_2dv1
+        J[e2+non,e1+2*non] += dfy_2dtt1
+
+        J[e2+non,e2] += dfy_2du2
+        J[e2+non,e2+non] += dfy_2dv2
+        J[e2+non,e2+2*non] += dfy_2dtt2
+
+        J[e2+2*non,e1] += dM2du1
+        J[e2+2*non,e1+non] += dM2dv1
+        J[e2+2*non,e1+2*non] += dM2dtt1
+
+        J[e2+2*non,e2] += dM2du2
+        J[e2+2*non,e2+non] += dM2dv2
+        J[e2+2*non,e2+2*non] += dM2dtt2
+
+    return 
 
 
 class BV_Network(NetworkBase):
@@ -105,9 +334,27 @@ class BV_Network(NetworkBase):
         self.mass = 1.0
         self.alpha  = 1.8
         self.J =  1./self.alpha**2 * self.mass * 0.5**2 
+        non = self.number_of_nodes
+        self.jac = np.zeros((3*non,3*non))
+        
+        # Intialize Solution
+        # TODO: Fix to generalize the static and the dynamic
+        self.y0 = np.zeros(self.number_of_nodes*6)
+        non = self.number_of_nodes
+        for i in range(non):
+            ipj = i%8+i//8
+            self.y0[i]=2e-5*(np.random.rand()-0.5)
+            self.y0[non+i]=2e-5*(np.random.rand()-0.5)
+            self.y0[2*non+i] = 1e-4*(-1)**(ipj)
 
     def internal_forces(self,u,v,tt):
         return _forces(u,v,tt, self.edges, self.e_R)
+
+    def jacobian(self,u,v,tt):
+        _zerojac(self.jac, self.edges)
+        _jacobian(u,v,tt,self.edges,self.e_R,self.jac)
+        return self.jac
+    
 
     def damp_forces(self, ud, vd, ttd):
         du = self.damp_u
@@ -168,12 +415,12 @@ if __name__ == "__main__":
     dyn = DynamicSolver(problem,problem.y0, 0, total_time)
     import time
     s = time.time()
-    dyn.run()
+    dyn.solve()
     e = time.time()
-    np.savetxt("presentation/time.txt", dyn.time) 
-    np.savetxt("presentation/data.txt", dyn.data)
-    print("Final_Time:", dyn.sim.t)
     print("Simulation Time ", e-s)
+    
+    np.savetxt("presentation/time.txt", dyn.out.t) 
+    np.savetxt("presentation/data.txt", dyn.out.y)
     
 
 

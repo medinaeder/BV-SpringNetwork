@@ -11,11 +11,15 @@ Need to compare the output of the generalized graph to the output of the bolei g
 
 Label Boundary Nodes
 Figure out how to apply the boundary conditions on the nonlinear problem
-Compute the Jacobian
+
+Compare to the finite difference jacobian
+
 
 We don't have a input output module..
 
 # Perhaps we can use the sparse lu
+# Convert the dense to a sparse matrix and then use superlu
+# can always can go back and check
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.splu.html
 
 Create the best plot
