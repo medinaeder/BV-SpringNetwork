@@ -2,6 +2,8 @@ import numpy as np
 import scipy as sp
 from networkbase import NetworkBase
 from numba import njit
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 @njit 
@@ -91,7 +93,7 @@ def _forces(u, v, tt, edges, r0):
     return fx, fy, ms
 
 @njit
-def _zerojac(J, edges):
+def _zerojac(J, edges,non):
     num_edges = edges.shape[0]
     # Loop through the edges
     for i in range(num_edges):
@@ -169,15 +171,20 @@ def _jacobian(u, v, tt, edges, r0, J):
     k_th = 1e-4/4.
 
     num_edges = edges.shape[0]
+    non = u.shape[0]
     # Loop through the edges
     for i in range(num_edges):
         e1 = edges[i,0]
         e2 = edges[i,1]
-        #u1, v1, tt1 = u[e1], v[e1], tt[e1]
-        #u2, v2, tt2 = u[e2], v[e2], tt[e2]
+        u1, v1, tt1 = u[e1], v[e1], tt[e1]
+        u2, v2, tt2 = u[e2], v[e2], tt[e2]
 
-        #rx = r0[i,0]
-        #ry = r0[i,1]
+        rx = r0[i,0]
+        ry = r0[i,1]
+        c1 = cos(tt1) 
+        s1 = sin(tt1)
+        c2 = cos(tt2) 
+        s2 = sin(tt2)
 
         # Set them all to 1 
 #        dfx_1du1 = 1
@@ -351,7 +358,7 @@ class BV_Network(NetworkBase):
         return _forces(u,v,tt, self.edges, self.e_R)
 
     def jacobian(self,u,v,tt):
-        _zerojac(self.jac, self.edges)
+        _zerojac(self.jac, self.edges,self.number_of_nodes)
         _jacobian(u,v,tt,self.edges,self.e_R,self.jac)
         return self.jac
     
@@ -399,17 +406,75 @@ class BV_Network(NetworkBase):
 
     def staticBCs(self):
         pass
+    
+    def plot(self,y):
+        plt.figure()
+        ax = plt.gca()
+        G = self.G
+
+        if len(nx.get_node_attributes(G, "pos")) ==0:
+            pos = nx.get_node_attributes(G,"loc")
+
+        else:
+            pos = nx.get_node_attributes(G, "pos")
+        
+        xy = np.array(list(pos.values()))
+        assert xy.shape[0] == G.number_of_nodes()
+        
+        # Loop through the node 
+        # if nodes have attribute pos then 
+        # else use loc
+        # plot the node with the color of the attribute
+        # Scatter plot 
+        # Add the edge connectivity
+
+        node_collection = ax.scatter(xy[:, 0], xy[:, 1],
+                                 s=300,
+                                 c=y,
+                                 marker="o",
+                                 linewidths=None,
+                                 edgecolors=None
+                                 )
+        node_collection.set_zorder(2)
+        ax.tick_params(
+        axis='both',
+        which='both',
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False)
+        edgelist = G.edges()
+        edge_pos = np.asarray([(pos[e[0]], pos[e[1]]) for e in edgelist])
+        from matplotlib.collections import LineCollection
+        width = 1
+        edge_collection = LineCollection(edge_pos,
+                                         colors='k',
+                                         linewidths=width,
+                                         antialiaseds=(1,),
+                                         linestyle='solid',
+                                         transOffset=ax.transData,
+                                         )
+
+        edge_collection.set_zorder(1)  # edges go behind nodes
+        ax.add_collection(edge_collection)
+        return
+
 
 if __name__ == "__main__":
-    import networkx as nx
     m = 8
     n = 8
     
-    G = nx.grid_2d_graph(m,n)
+    #G = nx.grid_2d_graph(m,n)
+    #G = nx.hexagonal_lattice_graph(m,n)
+    G = nx.triangular_lattice_graph(m,n)
     pre_time = 5*n
     load_time = 50*n
     total_time = pre_time+load_time
     problem = BV_Network(G)
+    #pos = nx.get_node_attributes(problem.G,"loc")
+    #y = 2*(np.random.rand(problem.number_of_nodes)-0.5)
+
+
 
     from dynamicsolver import DynamicSolver
     dyn = DynamicSolver(problem,problem.y0, 0, total_time)
@@ -417,10 +482,22 @@ if __name__ == "__main__":
     s = time.time()
     dyn.solve()
     e = time.time()
+    print(dyn.out.y.shape)
     print("Simulation Time ", e-s)
+
+    yd = dyn.out.y[:,-1]
+    non = problem.number_of_nodes
+
+    problem.plot(yd[:non])
+    plt.title("u")
+    problem.plot(yd[non:2*non])
+    plt.title("v")
+    problem.plot(yd[2*non:3*non])
+    plt.title(r"\theta")
+    plt.show()
     
-    np.savetxt("presentation/time.txt", dyn.out.t) 
-    np.savetxt("presentation/data.txt", dyn.out.y)
+    #np.savetxt("presentation/time.txt", dyn.out.t) 
+    #np.savetxt("presentation/data.txt", dyn.out.y)
     
 
 

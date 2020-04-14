@@ -1,29 +1,20 @@
 ##############
 Most Important
-Reshape the bolei output the right way. See what the data says this way
-Compare the data with the other implementations
 
 ###########
-The preprocessing that is done for the grid2dgraph is going to be different than the hexagonal and the triangular lattice graph
+Finish the StaticSolver
+# Generalizations that are needed
+o: Labeling Boundary Nodes
 
-Finish the proper implementation of the static case
-Need to compare the output of the generalized graph to the output of the bolei graph
+# General Questions
+o: What does an input output module look like
 
-Label Boundary Nodes
-Figure out how to apply the boundary conditions on the nonlinear problem
+##########################
+##########################
+# DONE:
+# Important checks that have be completed
+x: ecked the Jacobian with the finite difference approximation
+x: Interpret the eigenvalues of the jacobian
+x: The eigenvalues are all real! This is good
 
-Compare to the finite difference jacobian
-
-
-We don't have a input output module..
-
-# Perhaps we can use the sparse lu
-# Convert the dense to a sparse matrix and then use superlu
-# can always can go back and check
-https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.splu.html
-
-Create the best plot
-Compute the jacobian of this system
-
-# Add a plotting routine
-
+x: Plotting

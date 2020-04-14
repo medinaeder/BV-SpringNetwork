@@ -59,9 +59,10 @@ class NetworkBase(abc.ABC):
     def staticBCs(self, t):
         pass
     
-    #@abc.abstractmethod
+    @abc.abstractmethod
     def jacobian(self):
         pass
+
 
     # TODO: Finish the following implementation
     def KE(self,ud,vd,ttd):
