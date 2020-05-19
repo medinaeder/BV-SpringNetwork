@@ -1,0 +1,12 @@
+ls = 4e-3; % shim length ranging from [3e-3 to 10e-3]
+ws = 1.6e-2; % width of the shims
+ts = 0.127e-3; % thikness of the shim [0.5e-4 to 1e-3]
+E_shim = 4.3e9; % stiffness of the shim
+I_l = ws*ts^3/12;
+I_s = ws*ts^3/12;
+ks = 12*E_shim*I_l/ls^3;
+ktheta = E_shim*I_s/ls;
+kl = E_shim*ts*ws/ls/20; % kl is not very accurate, but it does not matter so much as long as it is large %normalized values
+a = 4.2e-2; % size of the cross
+Ktheta = 4*ktheta/kl/a^2;
+Ks = ks/kl;
