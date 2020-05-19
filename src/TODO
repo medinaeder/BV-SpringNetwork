@@ -9,6 +9,11 @@ o: Labeling Boundary Nodes
 # General Questions
 o: What does an input output module look like
 
+# on an 8x8 with only a few solutions the forward solve takes about
+# 3 minutes
+# Doesn't seem to bad but we need to figure out how to create all the right logging files etc
+
+
 ##########################
 ##########################
 # DONE:
