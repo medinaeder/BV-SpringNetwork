@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 @njit 
-def _forces(u, v, tt, edges, r0):
+def _forces(u, v, tt, edges, r0,noise):
     """
     args:   u - displacement in x
             v - displacement in y
@@ -24,13 +24,13 @@ def _forces(u, v, tt, edges, r0):
     sin = np.sin
 
     # Spring Constants
-    k_l = 1.0 
     k_s = 0.02
     k_th = 1e-4/4.
 
     num_edges = edges.shape[0]
     # Loop through the edges
     for i in range(num_edges):
+        k_l = 1.0+noise[i]
         e1 = edges[i,0]
         e2 = edges[i,1]
         u1, v1, tt1 = u[e1], v[e1], tt[e1]
@@ -151,7 +151,7 @@ def _zerojac(J, edges,non):
         J[e2+2*non,e2+2*non] = 0
 
 @njit
-def _jacobian(u, v, tt, edges, r0, J):
+def _jacobian(u, v, tt, edges, r0, J,noise):
     """
     args:   u - displacement in x
             v - displacement in y
@@ -166,7 +166,6 @@ def _jacobian(u, v, tt, edges, r0, J):
     sin = np.sin
 
     # Spring Constants
-    k_l = 1.0 
     k_s = 0.02
     k_th = 1e-4/4.
 
@@ -174,6 +173,7 @@ def _jacobian(u, v, tt, edges, r0, J):
     non = u.shape[0]
     # Loop through the edges
     for i in range(num_edges):
+        k_l = 1.0+noise[i]
         e1 = edges[i,0]
         e2 = edges[i,1]
         u1, v1, tt1 = u[e1], v[e1], tt[e1]
@@ -343,6 +343,12 @@ class BV_Network(NetworkBase):
         self.J =  1./self.alpha**2 * self.mass * 0.5**2 
         non = self.number_of_nodes
         self.jac = np.zeros((3*non,3*non))
+        np.random.seed(0)
+        self.noise = (np.random.rand(self.e_R.shape[0])-0.5)*5e-4
+        
+        onez = np.ones(non)
+        self.MassMatrix = np.diag(np.concatenate((onez,onez,self.J*onez)))
+        
         
         # Intialize Solution
         # TODO: Fix to generalize the static and the dynamic
@@ -355,11 +361,11 @@ class BV_Network(NetworkBase):
             self.y0[2*non+i] = 1e-4*(-1)**(ipj)
 
     def internal_forces(self,u,v,tt):
-        return _forces(u,v,tt, self.edges, self.e_R)
+        return _forces(u,v,tt, self.edges, self.e_R,self.noise)
 
     def jacobian(self,u,v,tt):
         _zerojac(self.jac, self.edges,self.number_of_nodes)
-        _jacobian(u,v,tt,self.edges,self.e_R,self.jac)
+        _jacobian(u,v,tt,self.edges,self.e_R,self.jac, self.noise)
         return self.jac
     
 
