@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 class StaticProblem:
     def __init__(self, problem):
         self.problem = problem
@@ -22,7 +23,7 @@ class StaticProblem:
             if y1==0:
                 bottom_nodes.append(node)
 
-            if y1==3:
+            if y1==7:
                 top_nodes.append(node)
         
         self.bottom_nodes = bottom_nodes
@@ -112,19 +113,38 @@ class StaticProblem:
     def initial_guess(self):
         non = self.problem.number_of_nodes
         y0 = np.concatenate((np.zeros(non),np.ones(non)*1e-6,np.zeros(non)))
+        zeroz = np.zeros(non)
         # Seed random
+        y_rand = (np.random.rand(3*non)-0.5)*2e-5
         # Seed alternating solution
+        
+        def checkerboard(non):
+            # TODO: Currently Fixed for square array
+            m = int(np.sqrt(non))
+            return np.indices((m,m)).sum(axis=0) % 2 - 0.5
+         
+        rot = checkerboard(non).flatten()
+        y_rot1 = np.concatenate((zeroz, zeroz,rot*2e-4))
+        y_rot2 = np.concatenate((zeroz, zeroz, rot*-2e-4))
         # Seed uniform compression
-        return [np.zeros(3*non)+1e-4]
+        def uniform(non):
+            m = int(np.sqrt(non))
+            return np.indices((m,m)).sum(axis=0) % m 
+        
+        y_uni = np.concatenate((zeroz,uniform(non).flatten()*-1e-5,zeroz))
+        
+        
+        return [y_rand, y_rot1, y_rot2, y_uni ]
 
     
     def stability(self,u,r):
-        #e,v = np.linalg.eigh(self.jacobian(u,r))
-        return 0.0 #np.min(e)
+        # TODO: Mass matrix needs to have bcs rows zeros
+        e,v = sp.linalg.eigh(self.jacobian(u,r),self.problem.MassMatrix)
+        return np.min(e)
 
     def functional(self,y):
         # L2 norm
-        return np.dot(y,y)
+        return np.max(y)/np.pi
 
 
 if __name__ == "__main__":
@@ -132,18 +152,24 @@ if __name__ == "__main__":
     from bvnetwork import BV_Network
     import networkx as nx
     from deflatedcontinuation import DeflatedContinuation as DefCon
-    m = 4
-    n = 4
+    m = 8
+    n = 8
     
     G = nx.grid_2d_graph(m,n)
     model = BV_Network(G)
     problem = StaticProblem(model)
-    params = np.linspace(0.0,-0.0001*4,101)
-        
-    df = DefCon(problem, params[1:], False, 1e-7)
+    params = np.linspace(0.0,-0.01*8,21)
+    
+    import time;
+    start = time.time() 
+    print("Solving")
+    df = DefCon(problem, params[1:], False, 5e-7)
     df.run()
+    print("Refining")
+    df.refine()
     print("Plotting")
-    df.plot_solutions()
+    df.plot_solutions(False)
+    print("time", time.time()-start)
     plt.show()
     import IPython; IPython.embed()
     
